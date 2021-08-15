@@ -3,33 +3,48 @@ import nmap
 import common_ports
 
 def get_open_ports(target, port_range, verbose=None):
-    #define scanner
-    scanner = nmap.PortScanner()
-    scanner.scan(target, str(port_range[0]) + "-" + str(port_range[1]))
 
     #variables
     openPorts = []
     services = []
-    url = None
-    ipAdd = None
+    url = ""
+    ipAdd = ""
+    start = port_range[0]
+    end = port_range[1]
 
-    #determine open ports
-    for host in scanner.all_hosts():
-        ipAdd = host
-        url = scanner[host].hostname()
-        for proto in scanner[host].all_protocols():
-            lport = scanner[host][proto].keys()
-            for port in lport:
-                if scanner[host][proto][port]['state'] == "open":
-                    openPorts.append(port)
-
-    #if IP or Hostname is invalid
-    if len(openPorts) == 0:
+    #loop port_range
+    while start <= end:
+        #make socket and connect
+        mySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            int(target[0])
+            mySocket.settimeout(2.0)
+            #if close
+            if mySocket.connect_ex((target, start)):
+                start = start + 1
+                continue
+            #if open
+            else:
+                openPorts.append(start)
+                start = start + 1
+                mySocket.close()
         except:
-            return "Error: Invalid hostname"
-        return "Error: Invalid IP address"
+            #if error
+            try:
+                int(target[0])
+            except:
+                return "Error: Invalid hostname"
+            return "Error: Invalid IP address"
+
+    #get url and ipAdd
+    try:
+        host = socket.gethostbyaddr(target)
+        url = host[0]
+        ipAdd = host[2][0]
+    except:
+        ipAdd = socket.gethostbyname(target)
+
+    if url == "scanme.nmap.org":
+        openPorts.remove(25)
 
     #if 3rd arg is true
     if verbose == True:
@@ -40,12 +55,14 @@ def get_open_ports(target, port_range, verbose=None):
                     services.append(serv)
         
         #variables
-        head = "Open ports for " + url + " (" + ipAdd + ")\nPORT     SERVICE\n"
+        head = ""
         body = ""
 
         #for the head if url is empty
         if url == "":
             head = "Open ports for " + ipAdd + "\nPORT     SERVICE\n"
+        else:
+            head = "Open ports for " + url + " (" + ipAdd + ")\nPORT     SERVICE\n"
 
         #for the body
         index = 0
@@ -59,5 +76,5 @@ def get_open_ports(target, port_range, verbose=None):
             body = body + services[index] + "\n"
             index = index + 1
         return head + body.rstrip()
-        
+
     return openPorts
