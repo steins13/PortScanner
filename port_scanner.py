@@ -1,5 +1,4 @@
 import socket
-import nmap
 import common_ports
 
 def get_open_ports(target, port_range, verbose=None):
@@ -42,9 +41,6 @@ def get_open_ports(target, port_range, verbose=None):
         ipAdd = host[2][0]
     except:
         ipAdd = socket.gethostbyname(target)
-
-    if url == "scanme.nmap.org":
-        openPorts.remove(25)
 
     #if 3rd arg is true
     if verbose == True:
